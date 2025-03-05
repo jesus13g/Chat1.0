@@ -4,6 +4,7 @@ import es.ubu.lsi.common.ChatMessage;
 
 public class ChatClientImpl implements ChatClient{
 
+    //Clase interna
     public class ChatClientListener implements Runnable{
 
         @Override
