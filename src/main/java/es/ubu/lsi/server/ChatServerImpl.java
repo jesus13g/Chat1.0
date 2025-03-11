@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.util.List;
 
 public class ChatServerImpl implements ChatServer {
 
@@ -78,7 +79,7 @@ public class ChatServerImpl implements ChatServer {
     private SimpleDateFormat sdf;
     private int port;
     private boolean alive;
-
+    private List<ChatServerThreadForClient> clients;
 
     public ChatServerImpl(int port) {
         this.port = port;
@@ -93,7 +94,14 @@ public class ChatServerImpl implements ChatServer {
             this.alive = true;
             //this.sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
             while(alive){
-                //Por implementar...
+                System.out.println("Waiting for connection...");
+                Socket clientSocket = serverSocket.accept();
+                clientId++;
+                String username = "Client_" + clientId;
+                ChatServerThreadForClient client = new ChatServerThreadForClient(clientId, username, clientSocket);
+                clients.add(client);
+                client.start();
+                System.out.println("New client connected: " + username);
             }
         } catch (IOException e) {
             System.err.println("Error starting up: " + e.getMessage());
@@ -102,7 +110,7 @@ public class ChatServerImpl implements ChatServer {
 
     @Override
     public void shutdown() {
-        //Por implementar...
+        this.alive = false;
     }
 
     @Override
