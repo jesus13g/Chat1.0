@@ -2,6 +2,7 @@ package es.ubu.lsi.server;
 
 import es.ubu.lsi.common.ChatMessage;
 
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,6 +10,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ChatServerImpl implements ChatServer {
@@ -17,7 +19,7 @@ public class ChatServerImpl implements ChatServer {
         private int id;
         private String username;
         private Socket socket;
-        private BufferedReader in;
+        private final BufferedReader in;
         private PrintWriter out;
 
         public ChatServerThreadForClient(int id, String username, Socket socket) throws IOException {
@@ -77,12 +79,13 @@ public class ChatServerImpl implements ChatServer {
 
     private int clientId;
     private SimpleDateFormat sdf;
-    private int port;
+    private final int port;
     private boolean alive;
     private List<ChatServerThreadForClient> clients;
 
     public ChatServerImpl(int port) {
         this.port = port;
+        this.clients = new ArrayList<>();
     }
 
     @Override
@@ -110,7 +113,23 @@ public class ChatServerImpl implements ChatServer {
 
     @Override
     public void shutdown() {
+        System.out.println("Shutting down server...");
         this.alive = false;
+        if(!clients.isEmpty()) {
+            this.takeOutClients();
+        }
+        System.out.println("Server shut down...");
+    }
+
+    private void takeOutClients(){
+        for(ChatServerThreadForClient client : clients){
+            try{
+                System.out.println("Taking out client " + client.getUsername());
+                client.getSocket().close();
+            } catch (IOException e) {
+                System.err.println("Error shutting down client "+ client.getUsername() +": " + e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -125,6 +144,20 @@ public class ChatServerImpl implements ChatServer {
 
     public static void main(String[] args) {
         ChatServerImpl server = new ChatServerImpl(DEFAULT_PORT);
-        server.startup();
+        Thread serverThread = new Thread(server::startup);
+        serverThread.start();
+
+        BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            String input;
+            while ((input = consoleReader.readLine()) != null){
+                if("logout".equalsIgnoreCase(input)){
+                    server.shutdown();
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading console input: " + e.getMessage());
+        }
     }
 }
