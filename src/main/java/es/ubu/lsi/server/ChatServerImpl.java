@@ -38,7 +38,7 @@ public class ChatServerImpl implements ChatServer {
                     if (inputMsg == null) break;
 
                     ChatMessage msg = new ChatMessage(id, ChatMessage.MessageType.MESSAGE, inputMsg);
-                    System.out.println("Mensaje recibido: " + inputMsg);
+                    System.out.println( this.username+"> " + inputMsg);
                     broadcast(msg);
 
                     if (inputMsg.equalsIgnoreCase("logout")) break;
@@ -85,22 +85,28 @@ public class ChatServerImpl implements ChatServer {
 
     public ChatServerImpl(int port) {
         this.port = port;
-        this.clients = new ArrayList<>();
+        this.clients = new ArrayList<ChatServerThreadForClient>();
     }
 
     @Override
     public void startup() {
-        try(
-            ServerSocket serverSocket = new ServerSocket(this.port);
-        ) {
+        ServerSocket serverSocket = null;
+        try {
+            serverSocket = new ServerSocket(this.port);
             System.out.println("Starting up...");
             this.alive = true;
             //this.sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
             while(alive){
                 System.out.println("Waiting for connection...");
                 Socket clientSocket = serverSocket.accept();
+
+                BufferedReader temIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                String username = temIn.readLine();
+                if (username == null || username.isEmpty()){
+                    username = "ClientInvitado_" + this.clientId;
+                }
+
                 clientId++;
-                String username = "Client_" + clientId;
                 ChatServerThreadForClient client = new ChatServerThreadForClient(clientId, username, clientSocket);
                 clients.add(client);
                 client.start();
@@ -108,6 +114,14 @@ public class ChatServerImpl implements ChatServer {
             }
         } catch (IOException e) {
             System.err.println("Error starting up: " + e.getMessage());
+        } finally {
+            if(serverSocket != null){
+                try {
+                    serverSocket.close();
+                } catch (IOException e) {
+                    System.err.println("Error closing server socket: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -143,8 +157,13 @@ public class ChatServerImpl implements ChatServer {
     }
 
     public static void main(String[] args) {
-        ChatServerImpl server = new ChatServerImpl(DEFAULT_PORT);
-        Thread serverThread = new Thread(server::startup);
+        final ChatServerImpl server = new ChatServerImpl(DEFAULT_PORT);
+        Thread serverThread = new Thread(new Runnable() { // ######### RF.empaquetar
+            @Override
+            public void run() {
+                server.startup();
+            }
+        });
         serverThread.start();
 
         BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
