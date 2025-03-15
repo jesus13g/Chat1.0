@@ -12,9 +12,9 @@ import java.util.Scanner;
 public class ChatClientImpl implements ChatClient {
 
     // Clase interna para escuchar mensajes del servidor
-    public class ChatClientListener implements Runnable {
+    public static class ChatClientListener implements Runnable {
 
-        private Socket socket;
+        private final Socket socket;
 
         public ChatClientListener(Socket socket) {
             this.socket = socket;
@@ -27,9 +27,8 @@ public class ChatClientImpl implements ChatClient {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 String message;
                 // Mientras la conexión esté activa, escuchar mensajes del servidor
-                while ((message = in.readLine()) != null) {
-                    System.out.println("Mensaje del servidor: " + message);
-                }
+                while ((message = in.readLine()) != null) System.out.println(message);
+
             } catch (IOException e) {
                 System.out.println("Error al recibir el mensaje: " + e.getMessage());
             } finally {
@@ -44,9 +43,9 @@ public class ChatClientImpl implements ChatClient {
         }
     }
 
-    private String server;
-    private String username;
-    private int port;
+    private final String server;
+    private final String username;
+    private final int port;
     private boolean carryOn;
     private Socket socket;
     private PrintWriter out;
@@ -55,19 +54,13 @@ public class ChatClientImpl implements ChatClient {
         this.server = server;
         this.port = port;
         this.username = username;
-        carryOn = true;
+        this.carryOn = true;
     }
 
     @Override
     public boolean start() {
         try {
-            System.out.println("Conectando con el servidor: " + server + ":" + port);
-            // Conectar con el servidor
-            this.socket = new Socket(server, port);
-            this.out = new PrintWriter(socket.getOutputStream(), true);  // Inicialización de out
-            this.out.println(username);
-            Thread listener = new Thread(new ChatClientListener(socket));
-            listener.start();
+            this.inicializaConexion();
 
             // Enviar mensaje de conexión
             out.println("Connect " + username);
@@ -84,9 +77,19 @@ public class ChatClientImpl implements ChatClient {
                 sendMessage(new ChatMessage(0, ChatMessage.MessageType.MESSAGE, message));
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.err.println("Error al conectar el servidor: " + e.getMessage());
         }
         return true;
+    }
+
+    private void inicializaConexion() throws IOException {
+        System.out.println("Conectando con el servidor: " + server + ":" + port);
+        // Conectar con el servidor
+        this.socket = new Socket(server, port);
+        this.out = new PrintWriter(socket.getOutputStream(), true);  // Inicialización de out
+        this.out.println(username);
+        Thread listener = new Thread(new ChatClientListener(socket));
+        listener.start();
     }
 
     @Override
@@ -102,10 +105,10 @@ public class ChatClientImpl implements ChatClient {
     public void disconnect() {
         carryOn = false;
         try {
-            if (out != null) {
-                out.println("logout de " + username);
-                out.close();
-            }
+            ChatMessage msg = new ChatMessage(0, ChatMessage.MessageType.LOGOUT, "logout - " + this.username);
+            sendMessage(msg);
+
+            out.close();
             if (socket != null) {
                 socket.close();
             }
