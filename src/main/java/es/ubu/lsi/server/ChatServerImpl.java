@@ -12,17 +12,84 @@ import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
+/**
+ *
+ */
 public class ChatServerImpl implements ChatServer {
 
+    /**
+     *
+     */
+    private static final int DEFAULT_PORT = 1500;
+    /**
+     *
+     */
+    private int clientId;
+    /**
+     *
+     */
+    private SimpleDateFormat sdf;
+    /**
+     *
+     */
+    private final int port;
+    /**
+     *
+     */
+    private boolean alive;
+    /**
+     *
+     */
+    private final HashMap<Integer, ChatServerThreadForClient> clients;
+    /**
+     *
+     */
+    private final ArrayList<String> banList;
+
+    /**
+     *
+     * @param port
+     */
+    public ChatServerImpl(int port) {
+        this.port = port;
+        this.clients = new HashMap<>();
+        this.banList = new ArrayList<>();
+        this.sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    }
+
+    /**
+     *
+     */
     public class ChatServerThreadForClient extends Thread {
+        /**
+         *
+         */
         private int id;
+        /**
+         *
+         */
         private String username;
+        /**
+         *
+         */
         private Socket socket;
+        /**
+         *
+         */
         private final BufferedReader in;
+        /**
+         *
+         */
         private final PrintWriter out;
 
+        /**
+         *
+         * @param id
+         * @param username
+         * @param socket
+         * @throws IOException
+         */
         public ChatServerThreadForClient(int id, String username, Socket socket) throws IOException {
             this.setId(id);
             this.setUsername(username);
@@ -31,24 +98,30 @@ public class ChatServerImpl implements ChatServer {
             this.out = new PrintWriter(socket.getOutputStream(), true);
         }
 
+        /**
+         *
+         */
         public void run() {
             try {
                 String inputMsg;
-                while (true) {
-                    inputMsg = this.getIn().readLine();
-                    if (inputMsg == null) break;
-
-                    if (inputMsg.trim().toLowerCase().startsWith("ban ")){
-
+                while ((inputMsg = in.readLine()) != null) {
+                    if (inputMsg.equalsIgnoreCase("logout")) {
+                        System.out.println("Se ha desconectado " + this.getUsername());
+                        remove(this.id);
+                        break;
+                    } else if (inputMsg.trim().toLowerCase().startsWith("ban ")){
+                        String usernameBan = inputMsg.split(" ")[1];
+                        ban(usernameBan);
+                        System.out.println(this.username + " ha baneado a " + usernameBan);
                     } else if (inputMsg.trim().toLowerCase().startsWith("unban ")){
-
+                        String usernameUnban = inputMsg.split(" ")[1];
+                        unban(usernameUnban);
+                        System.out.println(this.username + " ha desbaneado a " + usernameUnban);
                     } else {
                         ChatMessage msg = new ChatMessage(id, ChatMessage.MessageType.MESSAGE, inputMsg);
                         System.out.println( this.username+"> " + inputMsg);
                         broadcast(msg);
                     }
-
-                    if (inputMsg.equalsIgnoreCase("logout")) break;
                 }
             } catch (IOException e){
                 System.out.println("Error al recibir el mensaje: " + e.getMessage());
@@ -61,46 +134,66 @@ public class ChatServerImpl implements ChatServer {
             }
         }
 
+        /**
+         *
+         * @return
+         */
         public long getId(){
             return this.id;
         }
 
+        /**
+         *
+         * @param id
+         */
         public void setId(int id){
             this.id = id;
         }
 
+        /**
+         *
+         * @return
+         */
         public String getUsername(){
             return this.username;
         }
 
+        /**
+         *
+         * @param username
+         */
         public void setUsername(String username){
             this.username = username;
         }
 
+        /**
+         *
+         * @return
+         */
         public Socket getSocket(){ return this.socket; }
 
+        /**
+         *
+         * @param socket
+         */
         public void setSocket(Socket socket){ this.socket = socket; }
 
+        /**
+         *
+         * @return
+         */
         public BufferedReader getIn(){ return this.in; }
 
+        /**
+         *
+         * @return
+         */
         public PrintWriter getOut(){ return this.out; }
     }
 
-    private static final int DEFAULT_PORT = 1500;
-
-    private int clientId;
-    private SimpleDateFormat sdf;
-    private final int port;
-    private boolean alive;
-    private final HashMap<Integer, ChatServerThreadForClient> clients;
-
-
-    public ChatServerImpl(int port) {
-        this.port = port;
-        this.clients = new HashMap<>();
-        this.sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-    }
-
+    /**
+     *
+     */
     @Override
     public void startup() {
         ServerSocket serverSocket = null;
@@ -108,7 +201,6 @@ public class ChatServerImpl implements ChatServer {
             serverSocket = new ServerSocket(this.port);
             System.out.println("Starting up...");
             this.alive = true;
-            //this.sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
             while(alive){
                 System.out.println("Waiting for connection...");
                 Socket clientSocket = serverSocket.accept();
@@ -121,10 +213,7 @@ public class ChatServerImpl implements ChatServer {
 
                 clientId++;
                 ChatServerThreadForClient client = new ChatServerThreadForClient(clientId, username, clientSocket);
-                synchronized (this.clients) {
-                    this.clients.put(clientId, client);
-                }
-
+                this.clients.put(clientId, client);
                 client.start();
             }
         } catch (IOException e) {
@@ -140,40 +229,63 @@ public class ChatServerImpl implements ChatServer {
         }
     }
 
+    /**
+     *
+     * @param username
+     */
+    private void ban(String username){
+        this.banList.add(username);
+    }
+
+    /**
+     *
+     * @param username
+     */
+    private void unban (String username){
+        this.banList.remove(username);
+    }
+
+    /**
+     *
+     */
     @Override
     public void shutdown() {
         System.out.println("Shutting down server...");
+
+        if(!clients.isEmpty()) this.takeOutClients();
         this.alive = false;
-        if(!clients.isEmpty()) {
-            this.takeOutClients();
-        }
+
         System.out.println("Server shut down...");
     }
 
+    /**
+     *
+     */
     private void takeOutClients(){
         synchronized (this.clients) {
             for(ChatServerThreadForClient client : clients.values()){
-                try{
-                    System.out.println("Taking out client " + client.getUsername());
-                    client.getSocket().close();
-                    client.getIn().close();
-                    client.getOut().close();
-                } catch (IOException e) {
-                    System.err.println("Error shutting down client "+ client.getUsername() +": " + e.getMessage());
-                }
+                System.out.println("Taking out client " + client.getUsername());
+                remove((int) client.getId());
             }
         }
     }
 
+    /**
+     *
+     * @param msg
+     */
     @Override
     public void broadcast(ChatMessage msg) {
         String timestamp = sdf.format(new java.util.Date());
-        ChatServerThreadForClient sender = this.clients.get(clientId);
+        ChatServerThreadForClient sender = this.clients.get(msg.getId());
+
         String messageWithTimestamp = "[" + timestamp + "] " + sender.getUsername() + ">" + msg.getMessage();
         synchronized(this.clients){
             for(ChatServerThreadForClient client : clients.values()){
                 try {
-                    client.out.println(messageWithTimestamp);
+                    if (client.getId() != msg.getId() && !this.banList.contains(client.getUsername())){
+                        client.out.println(messageWithTimestamp);
+                    }
                 } catch (Exception e){
                     System.err.println("Error broadcasting message: " + e.getMessage());
                 }
@@ -181,13 +293,27 @@ public class ChatServerImpl implements ChatServer {
         }
     }
 
+    /**
+     *
+     * @param id
+     */
     @Override
     public void remove(int id) {
-        synchronized(this.clients){
-            clients.remove(id);
+        try {
+            ChatServerThreadForClient client = this.clients.remove(id);
+            if (client != null) {
+                client.getSocket().close();
+                client.getIn().close();
+                client.getOut().close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
+    /**
+     *
+     */
     public void mostrarClientsConectados(){
         System.out.println("-> Clientes conectados:");
         synchronized(this.clients){
@@ -197,6 +323,10 @@ public class ChatServerImpl implements ChatServer {
         }
     }
 
+    /**
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         final ChatServerImpl server = new ChatServerImpl(DEFAULT_PORT);
         Thread serverThread = new Thread(new Runnable() { // ######### RF.empaquetar

@@ -103,19 +103,18 @@ public class ChatClientImpl implements ChatClient {
 
     @Override
     public void disconnect() {
-        carryOn = false;
-        try {
-            ChatMessage msg = new ChatMessage(0, ChatMessage.MessageType.LOGOUT, "logout - " + this.username);
-            sendMessage(msg);
-
-            out.close();
-            if (socket != null) {
+        ChatMessage msg = new ChatMessage(0, ChatMessage.MessageType.LOGOUT, "logout");
+        sendMessage(msg);
+        this.out.close();
+        if (this.socket != null) {
+            try {
                 socket.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            System.out.println("Desconectado del servidor.");
-        } catch (IOException e) {
-            System.out.println("Error al desconectar: " + e.getMessage());
         }
+        carryOn = false;
+        System.out.println("Desconectado del servidor.");
     }
 
     public static void main(String[] args) {
