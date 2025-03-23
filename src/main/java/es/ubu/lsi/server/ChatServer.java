@@ -19,13 +19,13 @@ public interface ChatServer {
 
     /**
      * Envia un mesaje a todos los clientes conectados al servidor.
-     * @param msg
+     * @param msg mensaje broadcast
      */
     public void broadcast(ChatMessage msg);
 
     /**
      * Elimina un cliente del servidor
-     * @param id
+     * @param id identificador del cliente
      */
     public void remove(int id);
 }

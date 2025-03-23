@@ -1,0 +1,76 @@
+<project name="Chat1.0" default="run-server" basedir=".">
+
+    <!-- ============================== -->
+    <!-- Definición de propiedades -->
+    <!-- ============================== -->
+    <property name="src.dir" value="src"/>
+    <property name="bin.dir" value="bin"/>
+    <property name="doc.dir" value="doc"/>
+    <property name="server.class" value="es.ubu.lsi.server.ChatServerImpl"/>
+    <property name="client.class" value="es.ubu.lsi.client.ChatClientImpl"/>
+
+    <!-- ============================== -->
+    <!-- Compilación del proyecto -->
+    <!-- ============================== -->
+    <target name="compile">
+        <mkdir dir="${bin.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${bin.dir}" includeantruntime="false">
+            <exclude name="**/test/**"/>
+        </javac>
+        <echo message="Compilación completada sin tests."/>
+    </target>
+
+    <!-- ============================== -->
+    <!-- Generación de Javadoc -->
+    <!-- ============================== -->
+    <target name="javadoc">
+        <mkdir dir="${doc.dir}"/>
+        <javadoc sourcepath="${src.dir}" destdir="${doc.dir}" author="true" version="true"
+                 windowtitle="Documentación del Proyecto">
+            <fileset dir="${src.dir}">
+                <include name="**/*.java"/>
+                <exclude name="**/test/**"/>
+            </fileset>
+        </javadoc>
+        <echo message="Documentación Javadoc generada en la carpeta '${doc.dir}'."/>
+    </target>
+
+    <!-- ============================== -->
+    <!-- Ejecución del servidor -->
+    <!-- ============================== -->
+    <target name="run-server" depends="compile">
+        <java classname="${server.class}" fork="true">
+            <classpath>
+                <path location="${bin.dir}"/>
+            </classpath>
+        </java>
+        <echo message="Servidor de chat ejecutado."/>
+    </target>
+
+    <!-- ============================== -->
+    <!-- Ejecución del cliente con argumento interactivo -->
+    <!-- ============================== -->
+    <target name="run-client" depends="compile">
+        <!-- Solicitar el nombre del cliente en tiempo de ejecución -->
+        <input message="Introduce el nombre del cliente:" addproperty="client.name"/>
+
+        <!-- Ejecutar el cliente pasando el nombre como argumento -->
+        <java classname="${client.class}" fork="true" >
+            <classpath>
+                <path location="${bin.dir}"/>
+            </classpath>
+            <arg value="${client.name}"/>  <!-- Pasar el nombre del cliente como argumento -->
+        </java>
+        <echo message="Cliente de chat ejecutado con el nombre: ${client.name}"/>
+    </target>
+
+    <!-- ============================== -->
+    <!-- Limpieza -->
+    <!-- ============================== -->
+    <target name="clean">
+        <delete dir="${bin.dir}"/>
+        <delete dir="${doc.dir}"/>
+        <echo message="Proyecto limpio. Se eliminaron las carpetas '${bin.dir}' y '${doc.dir}'."/>
+    </target>
+
+</project>
