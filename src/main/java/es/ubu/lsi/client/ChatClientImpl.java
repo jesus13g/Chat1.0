@@ -9,9 +9,14 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
 
+/**
+ * Clase cliente que hereda de chatClient
+ */
 public class ChatClientImpl implements ChatClient {
 
-    // Clase interna para escuchar mensajes del servidor
+    /**
+     * Clase interna para escuchar mensajes del servidor
+     */
     public static class ChatClientListener implements Runnable {
 
         private final Socket socket;
@@ -43,13 +48,37 @@ public class ChatClientImpl implements ChatClient {
         }
     }
 
+    /**
+     * nombre/direccion del servidor
+     */
     private final String server;
+    /**
+     * nombre del cliente
+     */
     private final String username;
+    /**
+     * puerto del servidor
+     */
     private final int port;
+    /**
+     * Ccomprueba si esta cargado el cliente
+     */
     private boolean carryOn;
+    /**
+     * Socket del cliente
+     */
     private Socket socket;
+    /**
+     * Salida del cliente
+     */
     private PrintWriter out;
 
+    /**
+     * Constructor. Inicializa los datos de un cliente.
+     * @param server nombre/direccion del servidor
+     * @param port puerto del servidor
+     * @param username nombre del cliente
+     */
     public ChatClientImpl(String server, int port, String username) {
         this.server = server;
         this.port = port;
@@ -57,6 +86,10 @@ public class ChatClientImpl implements ChatClient {
         this.carryOn = true;
     }
 
+    /**
+     * Conecta con el servidor, permitiendo enviar y recibir mensajes.
+     * @return true si conecta, false en caso contrario.
+     */
     @Override
     public boolean start() {
         try {
@@ -82,6 +115,10 @@ public class ChatClientImpl implements ChatClient {
         return true;
     }
 
+    /**
+     * Inicializa los sockets y la salida al servidor.
+     * @throws IOException en caso de fallo de conexión.
+     */
     private void inicializaConexion() throws IOException {
         System.out.println("Conectando con el servidor: " + server + ":" + port);
         // Conectar con el servidor
@@ -92,6 +129,10 @@ public class ChatClientImpl implements ChatClient {
         listener.start();
     }
 
+    /**
+     * Permite enviar un mensaje al servidor.
+     * @param msg mesaje a enviar por el cliente.
+     */
     @Override
     public void sendMessage(ChatMessage msg) {
         if (out != null) {
@@ -101,22 +142,22 @@ public class ChatClientImpl implements ChatClient {
         }
     }
 
+    /**
+     * Envia mensaje de desconexión y se desconecta del servidor.
+     */
     @Override
     public void disconnect() {
         ChatMessage msg = new ChatMessage(0, ChatMessage.MessageType.LOGOUT, "logout");
         sendMessage(msg);
-        this.out.close();
-        if (this.socket != null) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+
         carryOn = false;
         System.out.println("Desconectado del servidor.");
     }
 
+    /**
+     * Inicia la conexion con el servidor mediante los valores pasados como argumento.
+     * @param args entrada de valores para definir el servidor
+     */
     public static void main(String[] args) {
         String server = "localhost";
         String username = null;

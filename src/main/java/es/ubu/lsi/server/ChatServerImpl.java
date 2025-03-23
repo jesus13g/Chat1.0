@@ -14,42 +14,42 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- *
+ * Clase ChatServerImpl que immplementa la interfaz ChatServer
  */
 public class ChatServerImpl implements ChatServer {
 
     /**
-     *
+     * Puerto por defecto
      */
     private static final int DEFAULT_PORT = 1500;
     /**
-     *
+     * identificador del cliente
      */
     private int clientId;
     /**
-     *
+     * Formato del mensaje
      */
     private SimpleDateFormat sdf;
     /**
-     *
+     * Puerto del servidor
      */
     private final int port;
     /**
-     *
+     * Compueba si el servidor esta levantado
      */
     private boolean alive;
     /**
-     *
+     * Mapa con los clientes. {id: ClientThread}
      */
     private final HashMap<Integer, ChatServerThreadForClient> clients;
     /**
-     *
+     * Lista con los nombres de los clientes baneados
      */
     private final ArrayList<String> banList;
 
     /**
-     *
-     * @param port
+     * Constructor. Inicializa los valores del servidor.
+     * @param port puerto del servidor
      */
     public ChatServerImpl(int port) {
         this.port = port;
@@ -59,36 +59,36 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
+     * Clase interna concurrente para manejar a los clientes coenctados al servidor
      */
     public class ChatServerThreadForClient extends Thread {
         /**
-         *
+         * Identificador del cliente
          */
         private int id;
         /**
-         *
+         * Nombre del cliente
          */
         private String username;
         /**
-         *
+         * Socket del cliente
          */
         private Socket socket;
         /**
-         *
+         *  Buffer entrada del cliente
          */
         private final BufferedReader in;
         /**
-         *
+         * Salida al cliente
          */
         private final PrintWriter out;
 
         /**
-         *
-         * @param id
-         * @param username
-         * @param socket
-         * @throws IOException
+         * Constructor del hilo del cliente.
+         * @param id identificador del cliente
+         * @param username nombre del cliente
+         * @param socket socket asignado al cliente
+         * @throws IOException Excepcion de in/out
          */
         public ChatServerThreadForClient(int id, String username, Socket socket) throws IOException {
             this.setId(id);
@@ -99,7 +99,7 @@ public class ChatServerImpl implements ChatServer {
         }
 
         /**
-         *
+         * Activa el hilo de un cliente.
          */
         public void run() {
             try {
@@ -135,64 +135,64 @@ public class ChatServerImpl implements ChatServer {
         }
 
         /**
-         *
-         * @return
+         * Devuelve el identificador del cliente
+         * @return id identificador del cliente
          */
         public long getId(){
             return this.id;
         }
 
         /**
-         *
-         * @param id
+         * Define el valor del identificador del cliente
+         * @param id identificador del cliente
          */
         public void setId(int id){
             this.id = id;
         }
 
         /**
-         *
-         * @return
+         * Devuelve el nombre del cliente
+         * @return username nombre del cliente
          */
         public String getUsername(){
             return this.username;
         }
 
         /**
-         *
-         * @param username
+         * Define el valor del nombre del cliente.
+         * @param username nombre del cliente.
          */
         public void setUsername(String username){
             this.username = username;
         }
 
         /**
-         *
-         * @return
+         * Devuelve socket asignado a un cliente.
+         * @return socket socket asignado a un cliente.
          */
         public Socket getSocket(){ return this.socket; }
 
         /**
-         *
-         * @param socket
+         * Define el socket asignado a un cliente.
+         * @param socket socket asignado a un cliente.
          */
         public void setSocket(Socket socket){ this.socket = socket; }
 
         /**
-         *
-         * @return
+         * Devuelve entrada del buffer.
+         * @return in Entrada del buffer.
          */
         public BufferedReader getIn(){ return this.in; }
 
         /**
-         *
-         * @return
+         * Define salida del buffer.
+         * @return out salida del buffer.
          */
         public PrintWriter getOut(){ return this.out; }
     }
 
     /**
-     *
+     * Inicializa y levanta el servidor.
      */
     @Override
     public void startup() {
@@ -230,23 +230,23 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
-     * @param username
+     * Banea a un cliente por su username
+     * @param username nombre del cliente a banear
      */
     private void ban(String username){
         this.banList.add(username);
     }
 
     /**
-     *
-     * @param username
+     * desbanea a un cliente por su username
+     * @param username nombre del cliente a desbanear
      */
     private void unban (String username){
         this.banList.remove(username);
     }
 
     /**
-     *
+     * Apaga el servior.
      */
     @Override
     public void shutdown() {
@@ -259,7 +259,7 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
+     * Expulsa a los clientes del servidor.
      */
     private void takeOutClients(){
         synchronized (this.clients) {
@@ -271,8 +271,8 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
-     * @param msg
+     * Envia un mensaje a todos los clientes conectados al servidor.
+     * @param msg objeto ChatMessage con el mensaje para hacer el broadcast
      */
     @Override
     public void broadcast(ChatMessage msg) {
@@ -294,8 +294,8 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
-     * @param id
+     * Elimina a un cliente del servidor, cerrando su conexión.
+     * @param id identificador del cliente
      */
     @Override
     public void remove(int id) {
@@ -312,7 +312,7 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
+     * Permite mostrar los clientes conectados. Función única desde servidor.
      */
     public void mostrarClientsConectados(){
         System.out.println("-> Clientes conectados:");
@@ -324,12 +324,13 @@ public class ChatServerImpl implements ChatServer {
     }
 
     /**
-     *
-     * @param args
+     * Inicia el hilo principal del servidor.
+     * @param args argumentos de entrada
      */
     public static void main(String[] args) {
         final ChatServerImpl server = new ChatServerImpl(DEFAULT_PORT);
-        Thread serverThread = new Thread(new Runnable() { // ######### RF.empaquetar
+        Thread serverThread;
+        serverThread = new Thread(new Runnable() { // ######### RF.empaquetar
             @Override
             public void run() {
                 server.startup();
